@@ -98,7 +98,13 @@ ID	{LETTER}[a-zA-Z0-9_]*
 {DEC}+[.]{DEC}*([eE][+-]?{DEC}+)?	{yylval.doubleConstant = atof(yytext); return T_DoubleConstant;}
 
   /* String constant */
-"\""[^\n"]*"\""	{yylval.stringConstant = 0; return T_StringConstant;}
+"\""[^\n"]*"\""	{
+			char *dup = (char *)malloc(yyleng + 1);
+			strcpy(dup, yytext);
+
+			yylval.stringConstant = dup;
+			return T_StringConstant;
+		}
 "\""[^\n"]*	{ReportError::UntermString(&yylloc, yytext);}
 
   /* ID */
