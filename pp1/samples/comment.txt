@@ -3,3 +3,6 @@
 
 /*/* */
 /*** /***** /**** **** ** ****** "COMMENT" #define #MACRO **** */
+
+// "STRING" #define #MACRO /* */
+"STRING // HI #define #MACRO /* */"
