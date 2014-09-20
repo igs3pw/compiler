@@ -1,0 +1,38 @@
+/* Define tests: assumes comments already work */
+
+/* Incomplete defines */
+#def
+#define
+#define 
+#define NAME
+/* Empty define */
+#define NAME 
+
+/* Malformed defines */
+#define lowercase some stuff
+#define NAME1 bad number
+#define NAMEa lowercase char
+#define 1NAME inverse
+#define aNAME inverse
+
+/* Bad macros */
+#1MACRO
+#ifMACRO
+#!MACRO
+#""MACRO
+
+/* Ok macros */
+#define MACRO 
+#MACRO1
+#MACROif
+#MACRO!
+#MACRO""
+
+/* Tricky macro expansions */
+#define STRING "This is a string"
+#define COMMENT /* This is a comment */
+
+#STRING
+#COMMENT
+STRING
+COMMENT

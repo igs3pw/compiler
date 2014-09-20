@@ -1,0 +1,5 @@
+/* OK comment */
+1/* Another OK comment */*/* And another one */2
+
+/*/* */
+/*** /***** /**** **** ** ****** "COMMENT" #define #MACRO **** */
