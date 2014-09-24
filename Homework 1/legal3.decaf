@@ -1,0 +1,74 @@
+/**
+ * This builds two Cat objects and two Dog objects.
+ * One cat is the parent of the other cat and one dog is the parent of the other dog.
+ * All four animals then say something.
+ */
+
+interface Animal {
+	void say();
+	Animal parent();
+}
+
+class Cat implements Animal {
+	Cat parent;
+
+	void constructor(Cat parent) {
+		this.parent = parent;
+	}
+
+	void say() {
+		Print("Meow");
+	}
+
+	Animal parent() {
+		return this.parent;
+	}
+}
+
+class Dog implements Animal {
+	Dog parent;
+
+	void constructor(Dog parent) {
+		this.parent = parent;
+	}
+
+	void say() {
+		Print("Woof");
+	}
+
+	Animal parent() {
+		return this.parent;
+	}
+}
+
+void main() {
+	Cat c1;
+	Cat c2;
+	Dog d1;
+	Dog d2;
+
+	Animal a1;
+	Animal a2;
+	Animal a3;
+	Animal a4;
+
+	c1 = New(Cat);
+	c1.constructor(null);
+	c2 = New(Cat);
+	c2.constructor(c1);
+
+	d1 = New(Dog);
+	d1.constructor(null);
+	d2 = New(Dog);
+	d2.constructor(d1);
+
+	a1 = c1;
+	a2 = d1;
+	a3 = c2;
+	a4 = d2;
+
+	a3.say();
+	a4.say();
+	a3.parent().say();
+	a4.parent().say();
+}

@@ -1,0 +1,13 @@
+/* Illegal as int isn't a named type */
+
+void main() {
+	int x;
+
+	x = New(int);
+
+	x = ReadInteger();
+
+	x = x * x + x;
+
+	Print(x);
+}

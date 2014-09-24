@@ -1,0 +1,28 @@
+/* Illegal as a class can only extend one other class */
+
+class Object1 {
+	void fun1() {
+		Print("Fun1");
+	}
+}
+
+class Object2 {
+	void fun2() {
+		Print("Fun2");
+	}
+}
+
+class Object3 extends Object1, Object2 {
+	void fun3() {
+		fun1();
+		fun2();
+	}
+}
+
+void main() {
+	Object3 o;
+
+	o = New(Object3);
+
+	o.fun3();
+}

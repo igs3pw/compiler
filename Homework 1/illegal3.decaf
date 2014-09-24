@@ -1,0 +1,37 @@
+/* Illegal as interface can only contain prototypes */
+
+interface Test {
+	void fun() {
+		string s;
+
+		s = ReadLine();
+
+		if (s == "NextToken") {
+			s = ReadLine();
+			handler(s);
+		}
+	}
+
+	void handler(string s);
+}
+
+class Tester implements Test {
+	string s;
+
+	void handler(string s) {
+		this.s = s;
+	}
+
+	void run() {
+		while (this.s == null)
+			fun();
+	}
+}
+
+void main() {
+	Tester t;
+
+	t = New(Tester);
+
+	t.run();
+}

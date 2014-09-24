@@ -1,0 +1,114 @@
+/* This should be a implementation of ArrayList.
+ * Reads in five integers and places them into the ArrayList.
+ * Then prints them in reverse order.
+ * Prints the ArrayList size and whether it's empty.
+ * Finally clears the list and prints the information again. */
+
+class Object {
+
+}
+
+class Integer extends Object {
+	int val;
+
+	void constructor(int param) {
+		/* Decaf doesn't have constructors so hack around it */
+		this.val = param;
+	}
+
+	int value() {
+		return this.val;
+	}
+}
+
+class ArrayList {
+	Object [] arr;
+	int elem;
+
+	void constructor() {
+		/* Decaf doesn't have constructors so hack around it */
+		this.arr = NewArray(0, Object);
+		this.elem = 0;
+	}
+
+	void add(Object o) {
+		if (this.elem == this.arr.length()) {
+			int i;
+			Object [] dup;
+
+			dup = NewArray(this.elem * 2, Object);
+
+			for (i = 0; i < this.elem; i++) {
+				dup[i] = this.arr[i];
+			}
+
+			this.arr = dup;
+		}
+
+		this.arr[this.elem] = o;
+		this.elem = this.elem + 1;
+	}
+
+	void clear() {
+		this.elem = 0;
+	}
+
+	Object get(int idx) {
+		return arr[idx];
+	}
+
+	int indexOf(Object o) {
+		for (int i = 0; i < this.elem; i++)
+			if (this.arr[i] == o)
+				return i;
+
+		return -1;
+	}
+
+	bool isEmpty() {
+		return this.elem == 0;
+	}
+
+	Object set(int idx, Object o) {
+		Object old;
+
+		old = arr[idx];
+		arr[idx] = o;
+		return old;
+	}
+
+	int size() {
+		return this.elem;
+	}
+}
+
+void main() {
+	int i;
+	ArrayList b;
+
+	b = New(ArrayList);
+	b.constructor();
+
+	Print("ArrayList Program");
+
+	for (i = 0; i < 5; i++) {
+		Integer tmp;
+		int val;
+
+		val = ReadInteger();
+		tmp = New(Integer);
+		tmp.constructor(val);
+
+		b.add(tmp);
+	}
+
+	for (i = 4; i >= 0; i--) {
+		Print(b.get(i).value());
+	}
+
+	Print(b.size(), b.isEmpty());
+
+	b.clear();
+
+	Print(b.size(), b.isEmpty());
+}
