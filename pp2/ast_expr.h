@@ -186,6 +186,18 @@ class FieldAccess : public LValue
     void PrintChildren(int indentLevel);
 };
 
+class PostfixExpr : public Expr
+{
+  protected:
+    LValue *base;
+    Operator *op;
+
+  public:
+    PostfixExpr(LValue *base, Operator *op);
+    const char *GetPrintNameForNode() { return "PostfixExpr"; }
+    void PrintChildren(int indentLevel);
+};
+
 /* Like field access, call is used both for qualified base.field()
  * and unqualified field().  We won't figure out until later
  * whether we need implicit "this." so we use one node type for either

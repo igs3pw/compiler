@@ -37,7 +37,7 @@ void yyerror(const char *msg); // standard error-handling routine
 %left '<' T_LessEqual '>' T_GreaterEqual
 %left '+' '-'
 %left '*' '/' '%'
-%left '!'
+%left '!' T_Inc T_Dec
 %left '[' '.'
 
 /* Hack for dangling else */
@@ -68,11 +68,14 @@ void yyerror(const char *msg); // standard error-handling routine
     NamedType *ntype;
     Expr *expr;
     LValue *lvalue;
+    Case *kase;
+    Default *def;
     List<Stmt*> *stmtList;
     List<VarDecl*> *varList;
     List<Decl*> *declList;
     List<NamedType*> *ntList;
     List<Expr*> *exprList;
+    List<Case*> *caseList;
 }
 
 
@@ -87,6 +90,7 @@ void yyerror(const char *msg); // standard error-handling routine
 %token   T_And T_Or T_Null T_Extends T_This T_Interface T_Implements
 %token   T_While T_For T_If T_Else T_Return T_Break
 %token   T_New T_NewArray T_Print T_ReadInteger T_ReadLine
+%token   T_Inc T_Dec T_Switch T_Case T_Default
 
 %token   <identifier> T_Identifier
 %token   <stringConstant> T_StringConstant 
@@ -113,7 +117,7 @@ void yyerror(const char *msg); // standard error-handling routine
 %type <varList>   Formals FormalList VarDecls
 %type <fDecl>     FnDecl FnHeader Prototype
 %type <stmtList>  StmtList Stmts
-%type <stmt>      StmtBlock Stmt IfStmt WhileStmt ForStmt BreakStmt RetStmt PrintStmt
+%type <stmt>      StmtBlock Stmt IfStmt WhileStmt ForStmt BreakStmt RetStmt PrintStmt SwitchStmt
 %type <cDecl>     ClassDecl
 %type <iDecl>     IfaceDecl
 %type <ntype>     Extends
@@ -121,6 +125,9 @@ void yyerror(const char *msg); // standard error-handling routine
 %type <expr>      Expr Constant Call
 %type <exprList>  ExprList Actuals
 %type <lvalue>    LValue
+%type <caseList>  CaseList
+%type <kase>      Case
+%type <def>       DefCase
 %%
 /* Rules
  * -----
@@ -252,6 +259,7 @@ Stmt      :    ';'                  { $$ = new EmptyExpr; }
           |    RetStmt              { $$ = $1; }
           |    PrintStmt            { $$ = $1; }
           |    StmtBlock            { $$ = $1; }
+          |    SwitchStmt           { $$ = $1; }
 ;
 
 IfStmt    :    T_If '(' Expr ')' Stmt
@@ -283,6 +291,24 @@ RetStmt   :    T_Return ';'         { $$ = new ReturnStmt(@1, new EmptyExpr); }
 
 PrintStmt :    T_Print '(' ExprList ')' ';'
                                     { $$ = new PrintStmt($3); }
+;
+
+SwitchStmt:    T_Switch '(' Expr ')' '{' CaseList '}'
+                                    { $$ = new SwitchStmt($3, $6, NULL); }
+          |    T_Switch '(' Expr ')' '{' CaseList DefCase '}'
+                                    { $$ = new SwitchStmt($3, $6, $7); }
+;
+
+CaseList  :    CaseList Case        { ($$ = $1)->Append($2); }
+          |    Case                 { ($$ = new List<Case*>)->Append($1); }
+;
+
+Case      :    T_Case T_IntConstant ':' Stmts
+                                    { $$ = new Case(new IntConstant(@2, $2), $4); }
+;
+
+DefCase   :    T_Default ':' Stmts
+                                    { $$ = new Default($3); }
 ;
 
 ExprList  :    ExprList ',' Expr    { ($$ = $1)->Append($3); }
@@ -319,6 +345,9 @@ Expr      :    LValue '=' Expr      { $$ = new AssignExpr($1, new Operator(@2, "
                                     { $$ = new NewExpr(@1, new NamedType(new Identifier(@3, $3))); }
           |    T_NewArray '(' Expr ',' Type ')'
                                     { $$ = new NewArrayExpr(@1, $3, $5); }
+          /* Needs to be assignable */
+          |    LValue T_Inc         { $$ = new PostfixExpr($1, new Operator(@2, "++")); }
+          |    LValue T_Dec         { $$ = new PostfixExpr($1, new Operator(@2, "--")); }
 ;
 
 LValue    :    T_Identifier         { $$ = new FieldAccess(NULL, new Identifier(@1, $1)); }

@@ -94,6 +94,21 @@ FieldAccess::FieldAccess(Expr *b, Identifier *f)
     field->Print(indentLevel+1);
   }
 
+PostfixExpr::PostfixExpr(LValue *b, Operator *o) 
+  : Expr(Join(b->GetLocation(), o->GetLocation())) {
+    Assert(b != NULL && o != NULL);
+    base = b; 
+    op = o;
+    base->SetParent(this);
+    op->SetParent(this);
+}
+
+
+  void PostfixExpr::PrintChildren(int indentLevel) {
+    base->Print(indentLevel+1);
+    op->Print(indentLevel+1);
+  }
+
 Call::Call(yyltype loc, Expr *b, Identifier *f, List<Expr*> *a) : Expr(loc)  {
     Assert(f != NULL && a != NULL); // b can be be NULL (just means no explicit base)
     base = b;
