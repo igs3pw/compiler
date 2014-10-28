@@ -1,0 +1,35 @@
+class C extends B {
+	int a() {
+		int c;
+		double c;
+	}
+	Obj a() {}
+}
+
+class B extends A {
+	Obj a() {}
+}
+
+class Base {
+	void a() {}
+}
+
+class A extends Base {
+	/*void a() {
+		int b;
+		double b;
+	}*/
+	Obj a() {}
+}
+
+class D extends A {
+	Obj a() {}
+}
+
+class E extends F {
+	void a() {}
+}
+
+class F {
+	Obj a() {}
+}

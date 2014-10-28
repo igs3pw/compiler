@@ -1,0 +1,147 @@
+class Base {
+	int value;
+	Base ourself;
+	Base func(Base a, Base b) {
+		if (a.score() > b.score())
+			return a;
+		else
+			return b;
+	}
+
+	int score() {
+		return value * value - value;
+	}
+
+	void apply(int val) {
+		this.value = val;
+	}
+}
+
+class Subclass extends Base {
+	int score() {
+		int a;
+		{
+			int b;
+			int c;
+			b = 1;
+			{
+				Base a;
+				Base b;
+				b = New(Base);
+				b.apply(10);
+
+				{
+					c = b.score();
+				}
+			}
+
+			a = c;
+		}
+
+		return a;
+	}
+}
+
+class Child extends Parent {
+	Subclass run() {
+		return New(Subclass);
+	}
+
+	Base run2() {
+		return run();
+	}
+
+	Base run() {
+		return New(Subclass);
+	}
+}
+
+class Parent {
+	Base run () {
+		return New(Base);
+	}
+}
+
+class A extends B implements E, F {
+	int us;
+
+	D get() {
+		return New(B);
+	}
+
+	E apply(D a) {
+		us = a.advance();
+		return this;
+	}
+}
+
+class B extends C implements D {
+	int advance() {
+		val = val + 1;
+		return val;
+	}
+}
+
+class C {
+	int val;
+	int advance() {
+		val = (val + 1) * val / 2;
+		return val;
+	}
+}
+
+interface D {
+	int advance();
+}
+
+interface E {
+	D get();
+	E apply(D a);
+}
+
+interface F {
+	/* Empty */
+}
+
+class Stmt {
+	int test() {
+		int c;
+
+		if (true) {
+			int a;
+			int a;
+		}
+
+		while (false) {
+			int b;
+			int b;
+		}
+
+		for (c = 0;c < 1;c = c + 1) {
+			int d;
+			int d;
+		}
+
+		{
+			int i;
+			int i;
+		}
+	}
+}
+
+class AA extends BB {
+	void q() {}
+}
+
+class BB extends CC {
+	void q() {}
+}
+
+class CC implements DD {
+	void q() {}
+	int q() {}
+}
+
+interface DD {
+	int q();
+}
