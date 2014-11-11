@@ -1,0 +1,119 @@
+class BinkyClass extends NoClass implements NoInter {
+
+}
+
+interface BinkyInter {
+
+}
+
+class Extreme {
+	Extreme [][] run() {
+		return NewArray(10, Extreme []);
+	}
+}
+
+interface AA {}
+interface AAA {}
+interface CC {}
+interface BB {}
+
+class A implements AA, AAA, CC {
+
+}
+
+class B extends A implements BB {
+
+}
+
+class C extends B implements CC {
+
+}
+
+int test() {
+	/* No declaration found */
+	{
+		Binky();
+	}
+	{
+		int Binky;
+		Binky();
+	}
+	{
+		BinkyClass();
+	}
+	{
+		BinkyInter();
+	}
+	{
+		Binky = 1;
+	}
+	{
+		Binky.run();
+	}
+	{
+		New(Binky);
+	}
+	{
+		NewArray(0, Binky);
+	}
+	{
+		NewArray(NoExist, int);
+	}
+	{
+		NewArray(ReadLine(), int);
+	}
+	{
+		Binky[10];
+	}
+	{
+		int Binky;
+		Binky[10];
+	}
+	{
+		int [] arr;
+		arr[ReadLine()];
+		arr[10];
+		arr["Hello"];
+		arr[Binky];
+	}
+	{
+		Extreme e;
+
+		e.run()[0][2].run()[10][2].run()[0][0].run().run();
+		e.run().run().run().run();
+		e.run().run();
+	}
+	{
+		Binky = 2;
+		Binky = 3;
+		Binky = "Hello";
+	}
+	{
+		null.call();
+		("" + 1).call();
+		arr[0].call();
+	}
+}
+
+interface Printable {
+	void print();
+}
+
+class Cow implements Printable {
+
+}
+
+int main() {
+	int [][] a;
+	int [] b;
+	int c;
+
+        Binky();
+
+	b = a[0];
+	c = b[0];
+
+	c = "bye"["hello" + 1];
+}
+
+
