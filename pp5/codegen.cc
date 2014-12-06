@@ -150,6 +150,8 @@ void CodeGenerator::GenEndFunc()
   Assert(curFunc != NULL);
   curFunc->SetFrameSize(locals * VarSize);
   code.push_back(new EndFunc());
+
+  curFunc = NULL;
 }
 
 void CodeGenerator::GenPushParam(Location *param)
