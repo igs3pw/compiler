@@ -97,7 +97,7 @@ void CompoundExpr::Emit(CodeGenerator *cg) {
         Location *eq = cg->GenBinaryOp("==", left->GetVar(), right->GetVar());
         SetVar(cg->GenBinaryOp("-", cg->GenLoadConstant(1), eq));
     } else if (!strcmp(token, "!")) {
-        SetVar(cg->GenBinaryOp("-", cg->GenLoadConstant(1), right->GetVar()));
+        SetVar(cg->GenBinaryOp("==", cg->GenLoadConstant(0), right->GetVar()));
     } else if (!strcmp(token, "-") && !left) {
         SetVar(cg->GenBinaryOp("-", cg->GenLoadConstant(0), right->GetVar()));
     } else {
@@ -430,7 +430,7 @@ void FieldAccess::Emit(CodeGenerator *cg) {
             klass = cg->ThisPtr;
         }
 
-        int loc = (cd->VarDeclOffset(vd) + 1) * cg->VarSize;
+        int loc = cd->VarDeclOffset(vd) * cg->VarSize;
 
         SetVar(cg->GenLoad(klass, loc));
     } else {
@@ -452,7 +452,7 @@ void FieldAccess::EmitStore(CodeGenerator *cg, Expr *src) {
             klass = cg->ThisPtr;
         }
 
-        int loc = (cd->VarDeclOffset(vd) + 1) * cg->VarSize;
+        int loc = cd->VarDeclOffset(vd) * cg->VarSize;
 
         cg->GenStore(klass, src->GetVar(), loc);
         SetVar(src->GetVar());
@@ -589,7 +589,10 @@ void Call::Emit(CodeGenerator *cg) {
 
             SetVar(out);
         } else {
-            Location *out = cg->GenLCall(field->GetName(), fd->GetReturnType() != Type::voidType);
+            char tmp[128];
+            sprintf(tmp, "_%s", fd->GetId()->GetName());
+
+            Location *out = cg->GenLCall(tmp, fd->GetReturnType() != Type::voidType);
             cg->GenPopParams(cg->VarSize * actuals->NumElements());
 
             SetVar(out);
@@ -681,6 +684,7 @@ ReadIntegerExpr::ReadIntegerExpr(yyltype loc) : Expr(loc) {
 }
 
 void ReadIntegerExpr::Emit(CodeGenerator *cg) {
+    SetVar(cg->GenBuiltInCall(ReadInteger));
 }
 
 
@@ -689,4 +693,5 @@ ReadLineExpr::ReadLineExpr(yyltype loc) : Expr (loc) {
 }
 
 void ReadLineExpr::Emit(CodeGenerator *cg) {
+    SetVar(cg->GenBuiltInCall(ReadLine));
 }

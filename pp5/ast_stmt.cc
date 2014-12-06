@@ -104,7 +104,7 @@ void BreakStmt::Emit(CodeGenerator *cg) {
 
 void WhileStmt::Emit(CodeGenerator *cg) {
     const char *cont = cg->NewLabel();
-    const char *stop = cg->NewLabel();
+    stop = cg->NewLabel();
 
     cg->GenLabel(cont);
     /* while (test) */
@@ -131,7 +131,7 @@ void ForStmt::Check() {
 
 void ForStmt::Emit(CodeGenerator *cg) {
     const char *cont = cg->NewLabel();
-    const char *stop = cg->NewLabel();
+    stop = cg->NewLabel();
 
     init->Emit(cg);
     cg->GenLabel(cont);
@@ -160,12 +160,12 @@ void IfStmt::Check() {
 
 void IfStmt::Emit(CodeGenerator *cg) {
     const char *skip = cg->NewLabel();
-    const char *stop = cg->NewLabel();
 
     test->Emit(cg);
     cg->GenIfZ(test->GetVar(), skip);
     body->Emit(cg);
     if (elseBody) {
+        const char *stop = cg->NewLabel();
         cg->GenGoto(stop);
         cg->GenLabel(skip);
         elseBody->Emit(cg);

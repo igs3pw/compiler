@@ -299,8 +299,12 @@ void FnDecl::Emit(CodeGenerator *cg) {
         char tmp[128];
         sprintf(tmp, "_%s.%s", d->GetId()->GetName(), id->GetName());
         cg->GenLabel(tmp);
+    } else if (!strcmp("main", id->GetName())) {
+        cg->GenLabel("main");
     } else {
-        cg->GenLabel(id->GetName());
+        char tmp[128];
+        sprintf(tmp, "_%s", id->GetName());
+        cg->GenLabel(tmp);
     }
 
     cg->GenBeginFunc();
