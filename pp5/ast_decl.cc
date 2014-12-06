@@ -299,7 +299,11 @@ bool FnDecl::MatchesPrototype(FnDecl *other) {
 }
 
 void FnDecl::Emit(CodeGenerator *cg) {
+    int haveThis = 0;
+
     if (IsMethodDecl()) {
+        haveThis = 1;
+
         Decl *d = dynamic_cast<ClassDecl*>(parent);
 
         char tmp[128];
@@ -318,7 +322,7 @@ void FnDecl::Emit(CodeGenerator *cg) {
     for (int i = 0; i < formals->NumElements(); i++) {
         VarDecl *decl = formals->Nth(i);
 
-        decl->SetVar(new Location(fpRelative, cg->OffsetToFirstParam + i * cg->VarSize, decl->GetId()->GetName()));
+        decl->SetVar(new Location(fpRelative, cg->OffsetToFirstParam + (haveThis + i) * cg->VarSize, decl->GetId()->GetName()));
     }
 
     if (body)

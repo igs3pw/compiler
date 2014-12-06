@@ -335,7 +335,7 @@ void ArrayAccess::EmitStore(CodeGenerator *cg, Expr *src) {
         cg->GenIfZ(cmp, skip);
 
         /* Error occured */
-        Location *str = cg->GenLoadConstant("Decaf runtime error: Array subscript out of bound...");
+        Location *str = cg->GenLoadConstant("Decaf runtime error: Array subscript out of bounds\\n");
         cg->GenBuiltInCall(PrintString, str);
         cg->GenBuiltInCall(Halt);
 
