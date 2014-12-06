@@ -88,14 +88,18 @@ void CompoundExpr::Emit(CodeGenerator *cg) {
         Location *eq = cg->GenBinaryOp("==", left->GetVar(), right->GetVar());
         SetVar(cg->GenBinaryOp("||", lt, eq));
     } else if (!strcmp(token, ">=")) {
-        Location *gt = cg->GenBinaryOp(">", left->GetVar(), right->GetVar());
+        Location *gt = cg->GenBinaryOp("<", right->GetVar(), left->GetVar());
         Location *eq = cg->GenBinaryOp("==", left->GetVar(), right->GetVar());
         SetVar(cg->GenBinaryOp("||", gt, eq));
+    } else if (!strcmp(token, ">")) {
+        SetVar(cg->GenBinaryOp("<", right->GetVar(), left->GetVar()));
     } else if (!strcmp(token, "!=")) {
         Location *eq = cg->GenBinaryOp("==", left->GetVar(), right->GetVar());
         SetVar(cg->GenBinaryOp("-", cg->GenLoadConstant(1), eq));
     } else if (!strcmp(token, "!")) {
         SetVar(cg->GenBinaryOp("-", cg->GenLoadConstant(1), right->GetVar()));
+    } else if (!strcmp(token, "-") && !left) {
+        SetVar(cg->GenBinaryOp("-", cg->GenLoadConstant(0), right->GetVar()));
     } else {
         SetVar(cg->GenBinaryOp(op->GetToken(), left->GetVar(), right->GetVar()));
     }
@@ -223,10 +227,9 @@ void AssignExpr::Check() {
 }
 
 void AssignExpr::Emit(CodeGenerator *cg) {
-    left->Emit(cg);
-    right->Emit(cg);
+    LValue *lval = dynamic_cast<LValue *>(left);
+    lval->EmitStore(cg, right);
 
-    cg->GenAssign(left->GetVar(), right->GetVar());
     SetVar(left->GetVar());
 }
 
@@ -286,9 +289,62 @@ void ArrayAccess::Emit(CodeGenerator *cg) {
     base->Emit(cg);
     subscript->Emit(cg);
 
-    Location *off = cg->GenBinaryOp("+", base->GetVar(), subscript->GetVar());
+    /* Error checking */
+    {
+        char *skip = cg->NewLabel();
+        Location *zero = cg->GenLoadConstant(0);
+        Location *negative = cg->GenBinaryOp("<", subscript->GetVar(), zero);
+        Location *size = cg->GenLoad(base->GetVar(), -cg->VarSize);
+        Location *lt = cg->GenBinaryOp("<", subscript->GetVar(), size);
+        Location *gteq = cg->GenBinaryOp("==", lt, zero);
+        Location *cmp = cg->GenBinaryOp("||", negative, gteq);
+        cg->GenIfZ(cmp, skip);
 
-    SetVar(cg->GenLoad(off));
+        /* Error occured */
+        Location *str = cg->GenLoadConstant("Decaf runtime error: Array subscript out of bound...");
+        cg->GenBuiltInCall(PrintString, str);
+        cg->GenBuiltInCall(Halt);
+
+        cg->GenLabel(skip);
+    }
+
+    Location *rel = cg->GenBinaryOp("*", cg->GenLoadConstant(4), subscript->GetVar());
+    Location *abs = cg->GenBinaryOp("+", base->GetVar(), rel);
+
+    SetVar(cg->GenLoad(abs));
+}
+
+void ArrayAccess::EmitStore(CodeGenerator *cg, Expr *src) {
+    base->Emit(cg);
+    subscript->Emit(cg);
+
+    /* Error checking */
+    {
+        char *skip = cg->NewLabel();
+        Location *zero = cg->GenLoadConstant(0);
+        Location *negative = cg->GenBinaryOp("<", subscript->GetVar(), zero);
+        Location *size = cg->GenLoad(base->GetVar(), -cg->VarSize);
+        Location *lt = cg->GenBinaryOp("<", subscript->GetVar(), size);
+        Location *gteq = cg->GenBinaryOp("==", lt, zero);
+        Location *cmp = cg->GenBinaryOp("||", negative, gteq);
+        cg->GenIfZ(cmp, skip);
+
+        /* Error occured */
+        Location *str = cg->GenLoadConstant("Decaf runtime error: Array subscript out of bound...");
+        cg->GenBuiltInCall(PrintString, str);
+        cg->GenBuiltInCall(Halt);
+
+        cg->GenLabel(skip);
+    }
+
+    Location *rel = cg->GenBinaryOp("*", cg->GenLoadConstant(4), subscript->GetVar());
+    Location *abs = cg->GenBinaryOp("+", base->GetVar(), rel);
+
+    /* The solution seems to do this after all of the arithmetic, so I'll follow it */
+    src->Emit(cg);
+
+    cg->GenStore(abs, src->GetVar());
+    SetVar(src->GetVar());
 }
      
 
@@ -366,9 +422,43 @@ void FieldAccess::Emit(CodeGenerator *cg) {
     ClassDecl *cd = dynamic_cast<ClassDecl *>(vd->GetParent());
     if (cd) {
         /* We are accessing a field in a class */
-        SetVar(cg->GenLoad(cg->ThisPtr, 0/*FIXME*/));
+        Location *klass;
+        if (base) {
+            base->Emit(cg);
+            klass = base->GetVar();
+        } else {
+            klass = cg->ThisPtr;
+        }
+
+        int loc = (cd->VarDeclOffset(vd) + 1) * cg->VarSize;
+
+        SetVar(cg->GenLoad(klass, loc));
     } else {
         SetVar(vd->GetVar());
+    }
+}
+
+void FieldAccess::EmitStore(CodeGenerator *cg, Expr *src) {
+    src->Emit(cg);
+
+    ClassDecl *cd = dynamic_cast<ClassDecl *>(vd->GetParent());
+    if (cd) {
+        /* We are accessing a field in a class */
+        Location *klass;
+        if (base) {
+            base->Emit(cg);
+            klass = base->GetVar();
+        } else {
+            klass = cg->ThisPtr;
+        }
+
+        int loc = (cd->VarDeclOffset(vd) + 1) * cg->VarSize;
+
+        cg->GenStore(klass, src->GetVar(), loc);
+        SetVar(src->GetVar());
+    } else {
+        cg->GenAssign(vd->GetVar(), src->GetVar());
+        SetVar(src->GetVar());
     }
 }
 
@@ -382,8 +472,6 @@ Call::Call(yyltype loc, Expr *b, Identifier *f, List<Expr*> *a) : Expr(loc)  {
 }
 
 void Call::Check() {
-    FnDecl *fd;
-
     actuals->CheckAll();
 
     if (base) {
@@ -391,7 +479,7 @@ void Call::Check() {
 
         Type *tb = base->GetType();
         NamedType *nt = dynamic_cast<NamedType *>(tb);
-        if (tb == Type::errorType || tb == Type::nullType) {
+        if (tb == Type::errorType) {
             /* Error/Null type: ignore */
             SetType(Type::errorType);
             return;
@@ -455,34 +543,56 @@ void Call::Check() {
 }
 
 void Call::Emit(CodeGenerator *cg) {
-    if (!base) {
+    if (!fd) {
+        /* Array.length() */
+        base->Emit(cg);
+        SetVar(cg->GenLoad(base->GetVar(), -cg->VarSize));
+    } else {
+        Location *fnptr = 0;
+        Location *thiz = 0;
+
         int need = actuals->NumElements();
         for (int i = 0; i < need; i++) {
             Expr *arg = actuals->Nth(i);
             arg->Emit(cg);
         }
 
+        if (base) {
+            base->Emit(cg);
+
+            unsigned int loc = fd->GetOff() * cg->VarSize;
+
+            Location *vtable = cg->GenLoad(base->GetVar());
+            fnptr = cg->GenLoad(vtable, loc);
+
+            thiz = base->GetVar();
+        } else if (fd->IsMethodDecl()) {
+            unsigned int loc = fd->GetOff() * cg->VarSize;
+
+            Location *vtable = cg->GenLoad(cg->ThisPtr);
+            fnptr = cg->GenLoad(vtable, loc);
+
+            thiz = cg->ThisPtr;
+        }
+
+        /* This ordering is stange, but it matches the solution's */
         for (int i = need - 1; i >= 0; i--) {
             Expr *arg = actuals->Nth(i);
             cg->GenPushParam(arg->GetVar());
         }
 
-        Location *out = cg->GenLCall(field->GetName(), true);
-        cg->GenPopParams(4 * actuals->NumElements());
+        if (fnptr) {
+            cg->GenPushParam(thiz);
 
-        SetVar(out);
-    } else {
-        base->Emit(cg);
+            Location *out = cg->GenACall(fnptr, fd->GetReturnType() != Type::voidType);
+            cg->GenPopParams(cg->VarSize * actuals->NumElements() + cg->VarSize);
 
-        Type *tb = base->GetType();
-        NamedType *nt = dynamic_cast<NamedType *>(tb);
-
-        if (!nt) {
-            /* Array.length() */
-            Location *addr = cg->GenBinaryOp("-", base->GetVar(), cg->GenLoadConstant(cg->VarSize));
-            SetVar(cg->GenLoad(addr));
+            SetVar(out);
         } else {
+            Location *out = cg->GenLCall(field->GetName(), fd->GetReturnType() != Type::voidType);
+            cg->GenPopParams(cg->VarSize * actuals->NumElements());
 
+            SetVar(out);
         }
     }
 }
@@ -505,10 +615,15 @@ void NewExpr::Check() {
 }
 
 void NewExpr::Emit(CodeGenerator *cg) {
-    /* FIXME */
-    Location *cnt = cg->GenLoadConstant(cg->VarSize);
+    ClassDecl *cd = dynamic_cast<ClassDecl *>(cType->GetDeclForType());
 
-    SetVar(cg->GenBuiltInCall(Alloc, cnt));
+    unsigned int size = (cd->NumFields() + 1) * cg->VarSize;
+
+    Location *cnt = cg->GenLoadConstant(size);
+    Location *addr = cg->GenBuiltInCall(Alloc, cnt);
+    cg->GenStore(addr, cg->GenLoadLabel(cd->GetId()->GetName()));
+
+    SetVar(addr);
 }
 
 
@@ -534,9 +649,30 @@ void NewArrayExpr::Check() {
 void NewArrayExpr::Emit(CodeGenerator *cg) {
     size->Emit(cg);
 
-    Location *cnt = cg->GenBinaryOp("*", size->GetVar(), cg->GenLoadConstant(cg->VarSize));
+    /* The provided solution does bounds checking, so included here for easy diffing */
+    {
+        char *skip = cg->NewLabel();
+        Location *cmp = cg->GenBinaryOp("<", size->GetVar(), cg->GenLoadConstant(0));
+        cg->GenIfZ(cmp, skip);
 
-    SetVar(cg->GenBuiltInCall(Alloc, cnt));
+        /* Error occured */
+        Location *str = cg->GenLoadConstant("Decaf runtime error: Array size is <= 0\\n");
+        cg->GenBuiltInCall(PrintString, str);
+        cg->GenBuiltInCall(Halt);
+
+        cg->GenLabel(skip);
+    }
+
+    Location *cnt = cg->GenBinaryOp("+", cg->GenLoadConstant(1), size->GetVar());
+    Location *four = cg->GenLoadConstant(cg->VarSize);
+    Location *bytes = cg->GenBinaryOp("*", cnt, four);
+
+    Location *arr = cg->GenBuiltInCall(Alloc, bytes);
+
+    /* Store size */
+    cg->GenStore(arr, size->GetVar());
+
+    SetVar(cg->GenBinaryOp("+", arr, four));
 } 
 
 

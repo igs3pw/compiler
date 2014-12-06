@@ -66,6 +66,20 @@ void ClassDecl::Check() {
 
 void ClassDecl::Emit(CodeGenerator *cg) {
     members->EmitAll(cg);
+
+    List<const char *> *labels = new List<const char *>;
+
+    for (int i = 0; i < methods->NumElements(); i++) {
+        FnDecl *fd = methods->Nth(i);
+        ClassDecl *cd = dynamic_cast<ClassDecl *>(fd->GetParent());
+
+        char tmp[128];
+        sprintf(tmp, "_%s.%s", cd->GetId()->GetName(), fd->GetId()->GetName());
+
+        labels->Append(strdup(tmp));
+    }
+
+    cg->GenVTable(id->GetName(), labels);
 }
 
 // This is not done very cleanly. I should sit down and sort this out. Right now
@@ -75,19 +89,62 @@ Scope *ClassDecl::PrepareScope()
 {
     if (nodeScope) return nodeScope;
     nodeScope = new Scope();  
+
+    methods = new List<FnDecl *>;
+
     if (extends) {
         ClassDecl *ext = dynamic_cast<ClassDecl*>(parent->FindDecl(extends->GetId())); 
         if (ext) nodeScope->CopyFromScope(ext->PrepareScope(), this);
+
+        fields = ext->fields;
+
+        for (int i = 0; i < ext->methods->NumElements(); i++) {
+            methods->Append(ext->methods->Nth(i));
+        }
+    } else {
+        fields = 0;
     }
     convImp = new List<InterfaceDecl*>;
     for (int i = 0; i < implements->NumElements(); i++) {
         NamedType *in = implements->Nth(i);
         InterfaceDecl *id = dynamic_cast<InterfaceDecl*>(in->FindDecl(in->GetId()));
         if (id) {
-		nodeScope->CopyFromScope(id->PrepareScope(), NULL);
+	    nodeScope->CopyFromScope(id->PrepareScope(), NULL);
             convImp->Append(id);
-	  }
+
+            List<FnDecl *> *other = id->GetMethods();
+            for (int i = 0; i < other->NumElements(); i++) {
+                methods->Append(other->Nth(i));
+            }
+	}
     }
+
+    /* Count number of fields and methods */
+    for (int i = 0; i < members->NumElements(); i++) {
+        VarDecl *vd = dynamic_cast<VarDecl *>(members->Nth(i));
+        FnDecl *fd = dynamic_cast<FnDecl *>(members->Nth(i));
+
+        if (vd) {
+            fields++;
+        } else if (fd) {
+            FnDecl *d = dynamic_cast<FnDecl *>(nodeScope->Lookup(fd->GetId()));
+            if (!d) {
+                /* Not overriden, this is a new method */
+                fd->SetOff(methods->NumElements());
+                methods->Append(fd);
+            } else {
+                /* Otherwise copy that method's location in the VTable */
+                /* TODO: does not work with interfaces */
+                unsigned int idx = d->GetOff();
+
+                fd->SetOff(idx);
+
+                methods->RemoveAt(idx);
+                methods->InsertAt(fd, idx);
+            }
+        }
+    }
+
     members->DeclareAll(nodeScope);
 
     /* Check if something isn't implemented */
@@ -99,14 +156,12 @@ Scope *ClassDecl::PrepareScope()
             Iterator<Decl*> iter = s->GetIterator();
             Decl *decl;
             while ((decl = iter.GetNextValue()) != NULL) {
-                Decl *d = nodeScope->Lookup(decl->GetId());
-                FnDecl *fd = dynamic_cast<FnDecl *>(d);
-                if (!d)
+                FnDecl *fd = dynamic_cast<FnDecl *>(nodeScope->Lookup(decl->GetId()));
+                if (!fd)
                     continue;
 
                 if (fd->IsEmpty()) {
                     ReportError::InterfaceNotImplemented(this, new NamedType(in->GetId()));
-                    break;
                 }
             }
         }
@@ -145,11 +200,16 @@ bool ClassDecl::DoExtend(ClassDecl *d) {
     return false;
 }
 
-#if 0
 int ClassDecl::VarDeclOffset(VarDecl *find) {
     int off = 0;
+    if (extends) {
+        ClassDecl *ext = dynamic_cast<ClassDecl*>(parent->FindDecl(extends->GetId())); 
+        if (ext)
+            off = ext->fields;
+    }
+
     for (int i = 0; i < members->NumElements(); i++) {
-        VarDecl *vd = members->Nth(i);
+        VarDecl *vd = dynamic_cast<VarDecl *>(members->Nth(i));
 
         if (!vd)
             continue;
@@ -162,17 +222,11 @@ int ClassDecl::VarDeclOffset(VarDecl *find) {
         return off;
     }
 
-    if (extends) {
-        ClassDecl *ext = dynamic_cast<ClassDecl*>(parent->FindDecl(extends->GetId())); 
-        if (ext)
-            return ext->VarDeclOffset(find);
-    }
-
     return -1;
 }
-#endif
 
-InterfaceDecl::InterfaceDecl(Identifier *n, List<Decl*> *m) : Decl(n) {
+
+InterfaceDecl::InterfaceDecl(Identifier *n, List<FnDecl*> *m) : Decl(n) {
     Assert(n != NULL && m != NULL);
     (members=m)->SetParentAll(this);
 }
@@ -243,7 +297,7 @@ void FnDecl::Emit(CodeGenerator *cg) {
         Decl *d = dynamic_cast<ClassDecl*>(parent);
 
         char tmp[128];
-        sprintf(tmp, "_%s_%s", d->GetId()->GetName(), id->GetName());
+        sprintf(tmp, "_%s.%s", d->GetId()->GetName(), id->GetName());
         cg->GenLabel(tmp);
     } else {
         cg->GenLabel(id->GetName());

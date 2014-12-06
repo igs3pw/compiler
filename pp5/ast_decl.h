@@ -61,8 +61,9 @@ class ClassDecl : public Decl
     List<NamedType*> *implements;
     Type *cType;
     List<InterfaceDecl*> *convImp;
-    /* Includes extended class's fields */
+    /* Includes extended class's stuff */
     unsigned int fields;
+    List<FnDecl *> *methods;
 
   public:
     ClassDecl(Identifier *name, NamedType *extends, 
@@ -74,17 +75,23 @@ class ClassDecl : public Decl
     bool DoExtend(ClassDecl *d);
     bool DoImplement(InterfaceDecl *d);
     Type *GetType() { return cType; }
+
+    unsigned int NumFields() { return fields; }
+    int VarDeclOffset(VarDecl *find);
 };
 
 class InterfaceDecl : public Decl 
 {
   protected:
-    List<Decl*> *members;
+    List<FnDecl*> *members;
     
   public:
-    InterfaceDecl(Identifier *name, List<Decl*> *members);
+    InterfaceDecl(Identifier *name, List<FnDecl*> *members);
     void Check();
     Scope *PrepareScope();
+
+    List<FnDecl *> *GetMethods() { return members; }
+    int NumMethods() { return members->NumElements(); }
 };
 
 class FnDecl : public Decl 
@@ -93,6 +100,8 @@ class FnDecl : public Decl
     List<VarDecl*> *formals;
     Type *returnType;
     Stmt *body;
+
+    unsigned int off;
     
   public:
     FnDecl(Identifier *name, Type *returnType, List<VarDecl*> *formals);
@@ -107,6 +116,8 @@ class FnDecl : public Decl
     bool IsEmpty() { return body == NULL; }
 
     void Emit(CodeGenerator *cg);
+    unsigned int GetOff() { return off; }
+    void SetOff(unsigned int o) { off = o; }
 };
 
 #endif

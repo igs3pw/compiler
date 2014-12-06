@@ -57,6 +57,7 @@ void yyerror(const char *msg); // standard error-handling routine
     List<Stmt*> *stmtList;
     List<VarDecl*> *varList;
     List<Decl*> *declList;
+    List<FnDecl*> *fnDeclList;
     List<NamedType*> *ntList;
     List<Expr*> *exprList;
     //List<Case*> *caseList;
@@ -83,7 +84,8 @@ void yyerror(const char *msg); // standard error-handling routine
 /* Non-terminal types
  * ------------------
  */
-%type <declList>  DeclList FieldList ProtoList Protos Fields
+%type <declList>  DeclList FieldList Fields
+%type <fnDeclList> ProtoList Protos
 %type <decl>      Decl
 %type <type>      Type 
 %type <var>       Variable VarDecl
@@ -193,13 +195,13 @@ IfaceDecl :    T_Interface T_Identifier '{' Protos '}'
 ;
 
 Protos    :    ProtoList            { $$ = $1; }
-          |                         { $$ = new List<Decl*>; }
+          |                         { $$ = new List<FnDecl*>; }
 ;
 
 ProtoList :    ProtoList Prototype
                                     { ($$ = $1)->Append($2); }
           |    Prototype
-                                    { ($$ = new List<Decl*>)->Append($1); }
+                                    { ($$ = new List<FnDecl*>)->Append($1); }
 ;
 
 Prototype :    Type T_Identifier '(' Formals ')' ';'

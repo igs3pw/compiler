@@ -156,19 +156,21 @@ class LogicalExpr : public CompoundExpr
     void Check();
 };
 
-class AssignExpr : public CompoundExpr 
-{
-  public:
-    AssignExpr(Expr *lhs, Operator *op, Expr *rhs) : CompoundExpr(lhs,op,rhs) {}
-    const char *GetPrintNameForNode() { return "AssignExpr"; }
-    void Check();
-    void Emit(CodeGenerator *cg);
-};
-
 class LValue : public Expr 
 {
   public:
     LValue(yyltype loc) : Expr(loc) {}
+
+    virtual void EmitStore(CodeGenerator *cg, Expr *src) {}
+};
+
+class AssignExpr : public CompoundExpr 
+{
+  public:
+    AssignExpr(LValue *lhs, Operator *op, Expr *rhs) : CompoundExpr(lhs,op,rhs) {}
+    const char *GetPrintNameForNode() { return "AssignExpr"; }
+    void Check();
+    void Emit(CodeGenerator *cg);
 };
 
 class This : public Expr 
@@ -188,6 +190,7 @@ class ArrayAccess : public LValue
     ArrayAccess(yyltype loc, Expr *base, Expr *subscript);
     void Check();
     void Emit(CodeGenerator *cg);
+    void EmitStore(CodeGenerator *cg, Expr *src);
 };
 
 /* Note that field access is used both for qualified names
@@ -207,7 +210,10 @@ class FieldAccess : public LValue
     FieldAccess(Expr *base, Identifier *field); //ok to pass NULL base
     void Check();
     void Emit(CodeGenerator *cg);
+    void EmitStore(CodeGenerator *cg, Expr *src);
 };
+
+class FnDecl;
 
 /* Like field access, call is used both for qualified base.field()
  * and unqualified field().  We won't figure out until later
@@ -219,6 +225,8 @@ class Call : public Expr
     Expr *base;	// will be NULL if no explicit base
     Identifier *field;
     List<Expr*> *actuals;
+    /* The cached declaration we are accessing */
+    FnDecl *fd;
     
   public:
     Call(yyltype loc, Expr *base, Identifier *field, List<Expr*> *args);
