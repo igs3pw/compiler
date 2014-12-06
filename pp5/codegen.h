@@ -27,6 +27,7 @@ class CodeGenerator {
   private:
     std::list<Instruction*> code;
     int locals;
+    int globals;
     BeginFunc *curFunc;
 
   public:

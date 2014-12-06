@@ -65,7 +65,13 @@ void ClassDecl::Check() {
 }
 
 void ClassDecl::Emit(CodeGenerator *cg) {
-    members->EmitAll(cg);
+    //members->EmitAll(cg);
+    for (int i = 0; i < members->NumElements(); i++) {
+        FnDecl *fd = dynamic_cast<FnDecl *>(members->Nth(i));
+
+        if (fd)
+            fd->Emit(cg);
+    }
 
     List<const char *> *labels = new List<const char *>;
 

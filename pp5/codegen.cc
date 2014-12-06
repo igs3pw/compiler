@@ -16,6 +16,7 @@ CodeGenerator::CodeGenerator()
 {
     curFunc = NULL;
     locals = 0;
+    globals = 0;
 }
 
 char *CodeGenerator::NewLabel()
@@ -37,8 +38,13 @@ Location *CodeGenerator::GenTempVar()
      in stack frame for use as temporary. Until you
      do that, the assert below will always fail to remind
      you this needs to be implemented  */
-  result = new Location(fpRelative, OffsetToFirstLocal - locals * VarSize, temp);
-  locals++;
+  if (curFunc) {
+    result = new Location(fpRelative, OffsetToFirstLocal - locals * VarSize, temp);
+    locals++;
+  } else {
+    result = new Location(gpRelative, OffsetToFirstGlobal + globals * VarSize, temp);
+    globals++;
+  }
 
   Assert(result != NULL);
   return result;
@@ -46,8 +52,14 @@ Location *CodeGenerator::GenTempVar()
 
 Location *CodeGenerator::GenVar(const char *name)
 {
-  Location *result = new Location(fpRelative, OffsetToFirstLocal - locals * VarSize, name);
-  locals++;
+  Location *result;
+  if (curFunc) {
+    result = new Location(fpRelative, OffsetToFirstLocal - locals * VarSize, name);
+    locals++;
+  } else {
+    result = new Location(gpRelative, OffsetToFirstGlobal + globals * VarSize, name);
+    globals++;
+  }
   return result;
 }
  
