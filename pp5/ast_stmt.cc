@@ -36,7 +36,20 @@ void Program::Emit() {
 
     Emit(cg);
 
-    cg->DoFinalCodeGen();
+    for (int i = 0; i < decls->NumElements(); i++) {
+        FnDecl *fn = dynamic_cast<FnDecl *>(decls->Nth(i));
+
+        if (!fn)
+            continue;
+
+        if (!strcmp(fn->GetId()->GetName(), "main")) {
+            cg->DoFinalCodeGen();
+            delete cg;
+            return;
+        }
+    }
+
+    ReportError::NoMainFound();
 
     delete cg;
 }
@@ -159,10 +172,11 @@ void IfStmt::Check() {
 }
 
 void IfStmt::Emit(CodeGenerator *cg) {
-    const char *skip = cg->NewLabel();
-
     test->Emit(cg);
+
+    const char *skip = cg->NewLabel();
     cg->GenIfZ(test->GetVar(), skip);
+
     body->Emit(cg);
     if (elseBody) {
         const char *stop = cg->NewLabel();

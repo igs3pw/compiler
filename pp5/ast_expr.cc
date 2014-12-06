@@ -83,7 +83,9 @@ void CompoundExpr::Emit(CodeGenerator *cg) {
     right->Emit(cg);
 
     char *token = op->GetToken();
-    if (!strcmp(token, "<=")) {
+    if (!strcmp(token, "==") && left->GetType() == Type::stringType) {
+        SetVar(cg->GenBuiltInCall(StringEqual, left->GetVar(), right->GetVar()));
+    } else if (!strcmp(token, "<=")) {
         Location *lt = cg->GenBinaryOp("<", left->GetVar(), right->GetVar());
         Location *eq = cg->GenBinaryOp("==", left->GetVar(), right->GetVar());
         SetVar(cg->GenBinaryOp("||", lt, eq));
@@ -95,9 +97,9 @@ void CompoundExpr::Emit(CodeGenerator *cg) {
         SetVar(cg->GenBinaryOp("<", right->GetVar(), left->GetVar()));
     } else if (!strcmp(token, "!=")) {
         Location *eq = cg->GenBinaryOp("==", left->GetVar(), right->GetVar());
-        SetVar(cg->GenBinaryOp("-", cg->GenLoadConstant(1), eq));
+        SetVar(cg->GenBinaryOp("==", eq, cg->GenLoadConstant(0)));
     } else if (!strcmp(token, "!")) {
-        SetVar(cg->GenBinaryOp("==", cg->GenLoadConstant(0), right->GetVar()));
+        SetVar(cg->GenBinaryOp("==", right->GetVar(), cg->GenLoadConstant(0)));
     } else if (!strcmp(token, "-") && !left) {
         SetVar(cg->GenBinaryOp("-", cg->GenLoadConstant(0), right->GetVar()));
     } else {
@@ -286,12 +288,13 @@ void ArrayAccess::Check() {
 }
 
 void ArrayAccess::Emit(CodeGenerator *cg) {
+    char *skip = cg->NewLabel();
+
     base->Emit(cg);
     subscript->Emit(cg);
 
     /* Error checking */
     {
-        char *skip = cg->NewLabel();
         Location *zero = cg->GenLoadConstant(0);
         Location *negative = cg->GenBinaryOp("<", subscript->GetVar(), zero);
         Location *size = cg->GenLoad(base->GetVar(), -cg->VarSize);
@@ -315,12 +318,13 @@ void ArrayAccess::Emit(CodeGenerator *cg) {
 }
 
 void ArrayAccess::EmitStore(CodeGenerator *cg, Expr *src) {
+    char *skip = cg->NewLabel();
+
     base->Emit(cg);
     subscript->Emit(cg);
 
     /* Error checking */
     {
-        char *skip = cg->NewLabel();
         Location *zero = cg->GenLoadConstant(0);
         Location *negative = cg->GenBinaryOp("<", subscript->GetVar(), zero);
         Location *size = cg->GenLoad(base->GetVar(), -cg->VarSize);
